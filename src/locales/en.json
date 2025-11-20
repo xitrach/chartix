@@ -1,0 +1,131 @@
+{
+  "common": {
+    "risk_warning": "Trading involves risk. Past results do not guarantee future returns. Trade responsibly.",
+    "join_discord": "Join Discord",
+    "view_pricing": "View Pricing",
+    "learn_more": "Learn More",
+    "read_more": "Read More",
+    "enroll_now": "Enroll Now",
+    "menu": {
+      "home": "Home",
+      "mentorship": "Mentorship",
+      "pricing": "Pricing",
+      "pay": "Pay",
+      "discord": "Discord"
+    },
+    "footer": {
+      "quick_links": "Quick Links",
+      "legal": "Legal",
+      "contact": "Contact",
+      "terms": "Terms of Service",
+      "privacy": "Privacy Policy",
+      "risk": "Risk Disclaimer",
+      "rights": "© 2025 Chartix Mentorship. All rights reserved."
+    }
+  },
+  "hero": {
+    "title": "Learn Forex the <1>right way</1>",
+    "subtitle": "Clear rules, live guidance, and private signals that teach you the why, not just the how.",
+    "description": "This mentorship program gives you everything you need to trade Forex with confidence and grow your account, even if you're starting from zero. When you join, you'll also get free Forex signals on my private Discord, so you can learn and profit at the same time.",
+    "description_2": "Many students start seeing results within their first month, combining proven strategies with real-time guidance.",
+    "description_3": "Enrollment is now open for a limited group. Click below to join and start your journey to financial freedom."
+  },
+  "stats": {
+    "students": "Students Enrolled",
+    "partners": "Partner Companies",
+    "reviews": "5-Star Reviews",
+    "earners_4": "4-Figure Earners",
+    "earners_5": "5-Figure Earners"
+  },
+  "about": {
+    "title": "About the Mentor",
+    "greeting": "Hi, I'm Mathieu Maatouk, a Forex trader with over 3 years of experience in the market.",
+    "p1": "In this time, I've grown my account to 6 figures by mastering strategies that actually work.",
+    "p2": "I know how overwhelming trading can feel when you're just starting out. That's why I created this course. It's designed to simplify the process and share what truly delivers results.",
+    "p3": "My goal is to help you avoid years of trial and error and fast-track your success.",
+    "p4": "This isn't just about trading; it's about creating real financial freedom.",
+    "p5": "If you're ready to take control of your future, this course is your starting point.",
+    "stats": {
+      "students": "Students",
+      "growth": "Account Growth",
+      "exp": "Experience",
+      "reviews": "5-Star Reviews"
+    }
+  },
+  "offer": {
+    "title": "My Life-Changing Offer",
+    "p1": "When you join my course, you're not just getting training, you're gaining access to my private Discord community.",
+    "p2": "Inside, I'll be sharing free Forex signals exclusively for my students, along with tips, strategies, and updates to help you maximize profits.",
+    "p3": "This isn't just about signals, it's about building a supportive community where we grow together. You'll be surrounded by motivated traders who share insights and push each other to succeed.",
+    "p4": "On top of that, I'll be personally active inside the Discord, guiding you with the same methods I used to grow my account to 6 figures.",
+    "features": {
+      "community": "Private Discord Community",
+      "signals": "Daily Signals + Live Calls",
+      "guidance": "1:1 Guidance & Accountability"
+    },
+    "mission": "My mission is simple: give you the knowledge and tools to trade with confidence and move closer to financial freedom."
+  },
+  "testimonials": {
+    "title": "What Students Say",
+    "subtitle": "Join hundreds of successful traders who transformed their lives",
+    "quote": "Mathieu's teaching style is clear and practical. No fluff, just real strategies that work.",
+    "author": "Michael R.",
+    "role": "Course Graduate"
+  },
+  "pricing": {
+    "title": "Start Your Journey Today",
+    "subtitle": "Choose the plan that fits your needs",
+    "course": {
+      "title": "Course",
+      "price": "$399.99",
+      "desc": "Complete Forex mastery course with 1 month free signals",
+      "offer": "Enroll now and unlock 1 month of premium Discord signals plus a shareable 20% invite code valid for your next purchase or for a friend.",
+      "referral_perk": "After purchase you receive a personal invite code worth 20% off any plan. Usable for your own future purchase or for a friend (1 total use).",
+      "features": [
+        "Complete Forex Mastery Course",
+        "1 Month Free Signals",
+        "Risk Management Strategies",
+        "Lifetime Access"
+      ],
+      "details": [
+        "Course $399.99 + 1 month free signals included",
+        "40+ step video roadmap split across beginner, intermediate and pro phases",
+        "Live mentorship calls twice per week with Q&A replays",
+        "Full library of strategy templates, checklists and risk management trackers",
+        "Private Discord access with daily market breakdowns",
+        "Includes prop-firm readiness module and funding game plan",
+        "Lifetime updates — every new lesson automatically added",
+        "Priority support plus referral code program (20% off, 1 use)"
+      ]
+    },
+    "copy": {
+      "title": "Copy Trades",
+      "price": "$49.99",
+      "period": "/month",
+      "desc": "Connect to my recommended broker for seamless copy trading: when you open a trade, the same position opens and closes on your account automatically using your preset risk management.",
+      "features": [
+        "Seamless Copy Trading",
+        "Automated Open & Close",
+        "Preset Risk Management",
+        "Connect Recommended Broker"
+      ]
+    },
+    "signals": {
+      "title": "Signals (with your own broker)",
+      "price": "$74.99",
+      "period": "/month",
+      "desc": "Daily Forex signals for any broker of your choice",
+      "features": [
+        "Daily Forex Signals",
+        "Use Any Broker",
+        "Entry & Exit Points",
+        "Market Analysis"
+      ]
+    }
+  },
+  "cta": {
+    "title": "Ready to Transform Your Trading?",
+    "subtitle": "Join our Discord community today and start your journey to financial freedom",
+    "button": "Join Discord Now"
+  }
+}
