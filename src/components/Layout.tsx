@@ -43,7 +43,7 @@ const Layout: React.FC = () => {
       >
         <div className="container mx-auto px-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-3 group">
-            <img src="/src/images/logo.jpg" alt="Chartix Logo" className="w-10 h-10 rounded-full border-2 border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]" />
+            <img src="/images/logo.jpg" alt="Chartix Logo" className="w-10 h-10 rounded-full border-2 border-[#D4AF37] shadow-[0_0_10px_rgba(212,175,55,0.3)]" />
             <span className="text-2xl font-bold tracking-tight text-white">
               Chartix<span className="text-primary drop-shadow-[0_0_5px_rgba(212,175,55,0.5)]">.</span>
             </span>
@@ -141,7 +141,7 @@ const Layout: React.FC = () => {
             {/* Brand */}
             <div className="col-span-1 md:col-span-2">
               <div className="flex items-center gap-2 mb-6">
-                <img src="/src/images/logo.jpg" alt="Chartix Logo" className="w-8 h-8 rounded-full grayscale opacity-80" />
+                <img src="/images/logo.jpg" alt="Chartix Logo" className="w-8 h-8 rounded-full grayscale opacity-80" />
                 <span className="text-2xl font-bold text-white">Chartix Mentorship</span>
               </div>
               <p className="text-slate-400 text-sm leading-relaxed max-w-sm mb-6">
