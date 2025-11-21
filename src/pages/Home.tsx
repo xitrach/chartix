@@ -3,7 +3,7 @@ import { useTranslation, Trans } from 'react-i18next';
 import { motion } from 'framer-motion';
 import type { Variants } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, TrendingUp, Users, Shield } from 'lucide-react';
+import { ArrowRight, CheckCircle2, TrendingUp, Users, Shield, Star } from 'lucide-react';
 import PlanDetailsModal, { PlanDetailContent } from '../components/PlanDetailsModal';
 import IntroSplash from '../components/IntroSplash';
 import TestimonialsCarousel from '../components/TestimonialsCarousel';
