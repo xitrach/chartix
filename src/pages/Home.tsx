@@ -150,7 +150,7 @@ const Home: React.FC = () => {
                 </div>
 
                 <img 
-                  src="/src/images/visual1.png" 
+                  src="/images/visual1.png" 
                   alt="Hero Visual" 
                   className="w-full h-auto relative z-10 drop-shadow-2xl animate-float"
                 />
@@ -194,7 +194,7 @@ const Home: React.FC = () => {
               <div className="relative z-10 rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-dark-800">
                  <div className="aspect-[4/5] relative group">
                     <img 
-                      src="/src/images/visual2.png" 
+                      src="/images/visual2.png" 
                       alt="Mathieu Maatouk" 
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     />
