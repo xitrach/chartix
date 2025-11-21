@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, CheckCircle2, TrendingUp, Users, Shield, Star } from 'lucide-react';
 import PlanDetailsModal, { PlanDetailContent } from '../components/PlanDetailsModal';
 import IntroSplash from '../components/IntroSplash';
+import TestimonialsCarousel from '../components/TestimonialsCarousel';
 
 const container = {
   hidden: { opacity: 0 },
@@ -121,12 +122,12 @@ const Home: React.FC = () => {
                   {t('hero.cta_primary')}
                   <ArrowRight className={`w-5 h-5 transition-transform group-hover:translate-x-1 ${isRTL ? "rotate-180 group-hover:-translate-x-1" : ""}`} />
                 </motion.a>
-                <Link
-                  to="/pay"
+                <a
+                  href="#pricing"
                   className="w-full sm:w-auto px-8 py-4 bg-dark-800/50 hover:bg-dark-800 border border-white/10 hover:border-primary/50 text-white font-semibold rounded-xl transition-all flex items-center justify-center backdrop-blur-sm"
                 >
                   {t('hero.cta_secondary')}
-                </Link>
+                </a>
               </motion.div>
             </motion.div>
 
@@ -191,22 +192,18 @@ const Home: React.FC = () => {
         <div className="container mx-auto px-4">
           <motion.div className="grid lg:grid-cols-2 gap-16 items-center" variants={scrollStagger}>
             <motion.div className="relative order-2 lg:order-1" variants={scrollItem}>
-              <div className="relative z-10 rounded-3xl overflow-hidden border border-white/10 shadow-2xl bg-dark-800">
-                 <div className="aspect-[4/5] relative group">
+              <div className="relative z-10">
+                 <div className="relative group">
                     <img 
                       src="/images/visual2.png" 
                       alt="Mathieu Maatouk" 
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      className="w-full h-auto object-cover object-top rounded-[2rem] shadow-2xl group-hover:scale-[1.02] transition-transform duration-700"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-dark-900 via-transparent to-transparent" />
-                    <div className="absolute bottom-8 left-8">
-                      <h3 className="text-2xl font-bold text-white">{t('about.name')}</h3>
-                      <p className="text-primary">{t('about.role')}</p>
-                    </div>
+                    <div className="absolute inset-0 rounded-[2rem] bg-gradient-to-t from-dark-900/80 via-transparent to-transparent pointer-events-none" />
                  </div>
               </div>
-              {/* Deco Box */}
-              <div className="absolute -bottom-6 -right-6 w-full h-full border-2 border-primary/20 rounded-3xl -z-10" />
+              {/* Soft Glow behind image */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[110%] h-[110%] bg-primary/10 blur-3xl -z-10 rounded-full" />
             </motion.div>
 
             <motion.div className="order-1 lg:order-2" variants={scrollItem}>
@@ -293,25 +290,9 @@ const Home: React.FC = () => {
         viewport={viewportConfig}
       >
         <div className="container mx-auto px-4 text-center">
-           <motion.div
-             className="max-w-4xl mx-auto bg-gradient-to-b from-white/5 to-transparent p-12 rounded-3xl border border-white/10 relative"
-             variants={scrollItem}
-           >
-             <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-12 h-12 bg-primary rounded-full flex items-center justify-center text-dark-900">
-               <Star className="fill-current w-6 h-6" />
-             </div>
-             <h2 className="text-2xl font-bold text-white mb-2 mt-4">{t('testimonials.title')}</h2>
-             <p className="text-slate-500 mb-8">{t('testimonials.subtitle')}</p>
-             
-             <blockquote className="text-2xl md:text-3xl font-medium text-slate-200 italic mb-8 leading-relaxed">
-               "{t('testimonials.quote')}"
-             </blockquote>
-             
-             <div>
-               <cite className="text-white font-bold not-italic text-lg">{t('testimonials.author')}</cite>
-               <p className="text-primary text-sm">{t('testimonials.role')}</p>
-             </div>
-           </motion.div>
+           <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">{t('testimonials.title')}</h2>
+           <p className="text-slate-400 mb-12">{t('testimonials.subtitle')}</p>
+           <TestimonialsCarousel />
         </div>
       </motion.section>
 
