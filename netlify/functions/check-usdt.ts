@@ -87,15 +87,27 @@ const handler: Handler = async (event: HandlerEvent) => {
       };
     }
 
-    // 2) stage=check: check blockchain for USDT TRC20 payment via OKLink
-      // 2) stage=check: check blockchain for USDT TRC20 payment via TronScan
-    const url =
-      'https://apilist.tronscanapi.com/api/token_trc20/transfers' +
-      `?toAddress=${MERCHANT_ADDRESS}` +
-      `&contract_address=${USDT_TRC20_CONTRACT}` +
-      `&limit=20`;
+    // 2) stage=check: check blockchain for USDT TRC20 payment via TronGrid/Tron API
+    const tronApiKey = process.env.TRON_API_KEY;
+    if (!tronApiKey) {
+      return {
+        statusCode: 500,
+        body: JSON.stringify({ error: 'Missing TRON_API_KEY' }),
+      };
+    }
 
-    const res = await fetch(url);
+    // Example TronGrid-style endpoint for TRC20 transfers by address+contract.
+    // Adjust the base URL/path if your provider docs use a different one.
+    const url =
+      `https://api.trongrid.io/v1/contracts/${USDT_TRC20_CONTRACT}/events` +
+      `?event_name=Transfer&only_to=true&to=${MERCHANT_ADDRESS}&limit=20`;
+
+    const res = await fetch(url, {
+      headers: {
+        'TRON-PRO-API-KEY': tronApiKey,
+      },
+    });
+
     if (!res.ok) {
       return {
         statusCode: 502,
@@ -103,27 +115,29 @@ const handler: Handler = async (event: HandlerEvent) => {
       };
     }
 
-    const data = await res.json() as any;
-    const transfers = data?.token_transfers || [];
+    const data = (await res.json()) as any;
+    const events = data?.data || [];
 
     const tolerance = 0.000001;
     let matchTx: any = null;
 
-    for (const tx of transfers) {
-      const amountStr =
-        tx.amount_str ||
-        tx.quant ||
-        tx.value ||
+    for (const ev of events) {
+      // TronGrid TRC20 Transfer event usually has result.value or result.amount,
+      // check your provider docs and adjust if needed.
+      const result = ev.result || {};
+      const rawValue =
+        result.value ||
+        result.amount ||
         '0';
 
-      const onChainAmount = parseFloat(amountStr) / 1_000_000; // USDT has 6 decimals
+      // USDT has 6 decimals on TRON
+      const onChainAmount = parseFloat(rawValue) / 1_000_000;
 
       if (Math.abs(onChainAmount - expectedAmount) <= tolerance) {
-        matchTx = tx;
+        matchTx = ev;
         break;
       }
     }
-
 
     if (!matchTx) {
       return {
@@ -132,7 +146,7 @@ const handler: Handler = async (event: HandlerEvent) => {
       };
     }
 
-    const txHash = matchTx.txId || matchTx.transactionId || matchTx.hash;
+    const txHash = matchTx.transaction_id || matchTx.transactionId || matchTx.txID;
     const explorerUrl = `https://tronscan.org/#/transaction/${txHash}`;
 
     const subjectPaid = `Payment confirmed: ${orderId}`;
@@ -173,6 +187,5 @@ const handler: Handler = async (event: HandlerEvent) => {
   }
 };
 
-// CommonJS export so Netlify runtime does not choke on "export"
+// CommonJS export
 module.exports = { handler };
-
