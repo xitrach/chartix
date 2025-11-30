@@ -1,13 +1,11 @@
 // netlify/functions/check-usdt.ts
 import type { Handler, HandlerEvent } from '@netlify/functions';
 
-// If on Node 18+ on Netlify, global fetch is available – no node-fetch import needed.
+// USDT TRC20 contract and your wallet
+const USDT_TRC20_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
+const MERCHANT_ADDRESS = 'TB98b4LLE8fJeSsxpmNWd979XY9FiB3KHN';
 
-const USDT_TRC20_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'; // official USDT TRC20 contract
-const MERCHANT_ADDRESS = 'TB98b4LLE8fJeSsxpmNWd979XY9FiB3KHN'; // YOUR TRC20 USDT ADDRESS
-
-// CHANGE THIS TO YOUR EMAIL PROVIDER
-// Example: Resend API
+// Email sender via Resend
 async function sendEmail(to: string, subject: string, html: string) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.FROM_EMAIL || 'no-reply@yourdomain.com';
@@ -23,12 +21,7 @@ async function sendEmail(to: string, subject: string, html: string) {
       Authorization: `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({
-      from,
-      to,
-      subject,
-      html,
-    }),
+    body: JSON.stringify({ from, to, subject, html }),
   });
 
   if (!res.ok) {
@@ -37,13 +30,13 @@ async function sendEmail(to: string, subject: string, html: string) {
   }
 }
 
-export const handler: Handler = async (event: HandlerEvent) => {
+const handler: Handler = async (event: HandlerEvent) => {
   try {
     const params = event.queryStringParameters || {};
     const orderId = params.orderId;
     const rawAmount = params.amount;
-    const email = params.email || ''; // buyer email (optional)
-    const stage = params.stage || 'check'; // "started" or "check"
+    const email = params.email || '';
+    const stage = params.stage || 'check';
 
     if (!orderId || !rawAmount) {
       return {
@@ -54,12 +47,15 @@ export const handler: Handler = async (event: HandlerEvent) => {
 
     const expectedAmount = parseFloat(rawAmount);
     if (Number.isNaN(expectedAmount)) {
-      return { statusCode: 400, body: JSON.stringify({ error: 'Invalid amount' }) };
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: 'Invalid amount' }),
+      };
     }
 
     const adminEmail = 'chartix1@gmail.com';
 
-    // 1) stage=started: send "payment started" emails, no blockchain check
+    // 1) stage=started: only send "payment started" emails
     if (stage === 'started') {
       const subject = `New payment started: ${orderId}`;
       const html = `
@@ -91,46 +87,31 @@ export const handler: Handler = async (event: HandlerEvent) => {
       };
     }
 
-const url =
-  `https://www.oklink.com/api/explorer/v1/tron/token-transfers` +
-  `?toAddress=${MERCHANT_ADDRESS}` +
-  `&tokenContractAddress=${USDT_TRC20_CONTRACT}` +
-  `&limit=20`;
+    // 2) stage=check: check blockchain for USDT TRC20 payment via OKLink
+    const url =
+      'https://www.oklink.com/api/explorer/v1/tron/token-transfers' +
+      `?toAddress=${MERCHANT_ADDRESS}` +
+      `&tokenContractAddress=${USDT_TRC20_CONTRACT}` +
+      `&limit=20`;
 
-const res = await fetch(url);
-if (!res.ok) {
-  return {
-    statusCode: 502,
-    body: JSON.stringify({ error: 'Upstream error', status: res.status }),
-  };
-}
+    const res = await fetch(url);
+    if (!res.ok) {
+      return {
+        statusCode: 502,
+        body: JSON.stringify({ error: 'Upstream error', status: res.status }),
+      };
+    }
 
-const data = await res.json() as any;
-// OKLink wraps results differently; adapt to their structure:
-const transfers = data?.data?.tokenTransfers || [];
-
-
-if (!res.ok) {
-  return {
-    statusCode: 502,
-    body: JSON.stringify({ error: 'Upstream error', status: res.status }),
-  };
-}
-
-const data = await res.json() as any;
-const transfers = data?.token_transfers || [];
+    const data = (await res.json()) as any;
+    const transfers = data?.data?.tokenTransfers || [];
 
     const tolerance = 0.000001;
     let matchTx: any = null;
 
     for (const tx of transfers) {
-      const amountStr =
-        tx.amount_str ||
-        tx.quant ||
-        tx.value ||
-        '0';
-
-      const onChainAmount = parseFloat(amountStr) / 1_000_000; // USDT has 6 decimals
+      // OKLink usually returns decimal amount as string
+      const amountStr = tx.amount || tx.amountStr || '0';
+      const onChainAmount = parseFloat(amountStr);
 
       if (Math.abs(onChainAmount - expectedAmount) <= tolerance) {
         matchTx = tx;
@@ -145,10 +126,9 @@ const transfers = data?.token_transfers || [];
       };
     }
 
-    const txHash = matchTx.transaction_id || matchTx.transactionHash;
+    const txHash = matchTx.txId || matchTx.transactionId || matchTx.hash;
     const explorerUrl = `https://tronscan.org/#/transaction/${txHash}`;
 
-    // Send "payment confirmed" emails
     const subjectPaid = `Payment confirmed: ${orderId}`;
     const htmlPaid = `
       <p>A USDT TRC20 payment has been confirmed.</p>
@@ -176,10 +156,7 @@ const transfers = data?.token_transfers || [];
 
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        paid: true,
-        txHash,
-      }),
+      body: JSON.stringify({ paid: true, txHash }),
     };
   } catch (e: any) {
     console.error(e);
@@ -190,5 +167,5 @@ const transfers = data?.token_transfers || [];
   }
 };
 
-
-
+// CommonJS export so Netlify runtime does not choke on "export"
+module.exports = { handler };
