@@ -88,10 +88,11 @@ const handler: Handler = async (event: HandlerEvent) => {
     }
 
     // 2) stage=check: check blockchain for USDT TRC20 payment via OKLink
+      // 2) stage=check: check blockchain for USDT TRC20 payment via TronScan
     const url =
-      'https://www.oklink.com/api/explorer/v1/tron/token-transfers' +
+      'https://apilist.tronscanapi.com/api/token_trc20/transfers' +
       `?toAddress=${MERCHANT_ADDRESS}` +
-      `&tokenContractAddress=${USDT_TRC20_CONTRACT}` +
+      `&contract_address=${USDT_TRC20_CONTRACT}` +
       `&limit=20`;
 
     const res = await fetch(url);
@@ -102,22 +103,27 @@ const handler: Handler = async (event: HandlerEvent) => {
       };
     }
 
-    const data = (await res.json()) as any;
-    const transfers = data?.data?.tokenTransfers || [];
+    const data = await res.json() as any;
+    const transfers = data?.token_transfers || [];
 
     const tolerance = 0.000001;
     let matchTx: any = null;
 
     for (const tx of transfers) {
-      // OKLink usually returns decimal amount as string
-      const amountStr = tx.amount || tx.amountStr || '0';
-      const onChainAmount = parseFloat(amountStr);
+      const amountStr =
+        tx.amount_str ||
+        tx.quant ||
+        tx.value ||
+        '0';
+
+      const onChainAmount = parseFloat(amountStr) / 1_000_000; // USDT has 6 decimals
 
       if (Math.abs(onChainAmount - expectedAmount) <= tolerance) {
         matchTx = tx;
         break;
       }
     }
+
 
     if (!matchTx) {
       return {
@@ -169,3 +175,4 @@ const handler: Handler = async (event: HandlerEvent) => {
 
 // CommonJS export so Netlify runtime does not choke on "export"
 module.exports = { handler };
+
