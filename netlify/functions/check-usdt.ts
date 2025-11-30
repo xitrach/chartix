@@ -91,14 +91,25 @@ export const handler: Handler = async (event: HandlerEvent) => {
       };
     }
 
-    // 2) stage=check: check blockchain for USDT TRC20 payment
-    const url =
-      `https://apilist.tronscanapi.com/api/token_trc20/transfers` +
-      `?toAddress=${MERCHANT_ADDRESS}` +
-      `&contract_address=${USDT_TRC20_CONTRACT}` +
-      `&limit=20`;
+const url =
+  `https://www.oklink.com/api/explorer/v1/tron/token-transfers` +
+  `?toAddress=${MERCHANT_ADDRESS}` +
+  `&tokenContractAddress=${USDT_TRC20_CONTRACT}` +
+  `&limit=20`;
 
-   const res = await fetch(url);
+const res = await fetch(url);
+if (!res.ok) {
+  return {
+    statusCode: 502,
+    body: JSON.stringify({ error: 'Upstream error', status: res.status }),
+  };
+}
+
+const data = await res.json() as any;
+// OKLink wraps results differently; adapt to their structure:
+const transfers = data?.data?.tokenTransfers || [];
+
+
 if (!res.ok) {
   return {
     statusCode: 502,
@@ -178,5 +189,6 @@ const transfers = data?.token_transfers || [];
     };
   }
 };
+
 
 
