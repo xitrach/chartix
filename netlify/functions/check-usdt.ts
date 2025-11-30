@@ -98,13 +98,16 @@ export const handler: Handler = async (event: HandlerEvent) => {
       `&contract_address=${USDT_TRC20_CONTRACT}` +
       `&limit=20`;
 
-    const res = await fetch(url);
-    if (!res.ok) {
-      return { statusCode: 502, body: JSON.stringify({ error: 'Upstream error' }) };
-    }
+   const res = await fetch(url);
+if (!res.ok) {
+  return {
+    statusCode: 502,
+    body: JSON.stringify({ error: 'Upstream error', status: res.status }),
+  };
+}
 
-    const data = (await res.json()) as any;
-    const transfers = data?.token_transfers || [];
+const data = await res.json() as any;
+const transfers = data?.token_transfers || [];
 
     const tolerance = 0.000001;
     let matchTx: any = null;
@@ -175,4 +178,5 @@ export const handler: Handler = async (event: HandlerEvent) => {
     };
   }
 };
+
 
