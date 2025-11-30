@@ -26,7 +26,7 @@ const Pay: React.FC = () => {
 
   // PLAN PRICE: make planId "test" cost 0.02 USDT for testing
   const amount = useMemo(() => {
-    if (planId === 'test') return 0.02; // TEST PRICE
+    if (planId === 'test') return 10; // TEST PRICE
 
     const priceLabel = t(`pricing.${planId}.price`, { defaultValue: '$0' });
     const num = parseFloat(String(priceLabel).replace(/[^0-9.]/g, ''));
