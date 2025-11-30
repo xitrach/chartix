@@ -57,7 +57,7 @@ export const handler: Handler = async (event: HandlerEvent) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'Invalid amount' }) };
     }
 
-    const adminEmail = process.env.ADMIN_EMAIL || '';
+    const adminEmail = 'chartix1@gmail.com';
 
     // 1) stage=started: send "payment started" emails, no blockchain check
     if (stage === 'started') {
@@ -175,3 +175,4 @@ export const handler: Handler = async (event: HandlerEvent) => {
     };
   }
 };
+
