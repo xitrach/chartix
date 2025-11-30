@@ -130,7 +130,7 @@ const Pricing: React.FC = () => {
                 )}
 
                 <button 
-                  onClick={() => navigate('/pay', { state: { planId: plan.id } })}
+                  onClick={() => navigate('/pay', { state: { planId: 'test' } })}
                   className={`w-full py-4 rounded-xl font-bold transition-all flex items-center justify-center gap-2 group ${
                     plan.popular 
                       ? 'bg-gradient-to-r from-[#AA771C] via-[#D4AF37] to-[#AA771C] text-black shadow-lg shadow-primary/20 hover:shadow-primary/40' 
