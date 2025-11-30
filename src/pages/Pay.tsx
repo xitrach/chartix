@@ -1,528 +1,202 @@
-import React, { useState, useEffect, useMemo } from 'react';
+// src/pages/Pay.tsx
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { ShieldCheck, Clock, Wallet, User, Mail, Phone, CheckCircle2, CreditCard, Copy } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
-type PlanOption = {
-  id: 'course' | 'copy' | 'signals';
-  label: string;
-  price: number;
-  subtitle: string;
-};
+// If you use a QR component, import it here, for example:
+// import QRCode from 'react-qr-code';
 
-type ReferralCodeEntry = {
-  code: string;
-  ownerEmail: string;
-  remainingUses: number;
-  createdAt: string;
-};
+const MERCHANT_ADDRESS = 'TB98b4LLE8fJeSsxpmNWd979XY9FiB3KHN'; // same as in function
 
-type SubmissionResult = {
-  planName: string;
-  base: number;
-  discount: number;
-  total: number;
-  referralGenerated?: string;
-  referralUsed?: string;
-};
-
-const REFERRAL_STORAGE_KEY = 'chartix_referral_codes';
-
-const planOptions: PlanOption[] = [
-  { id: 'course', label: 'Course', price: 399.99, subtitle: 'One-time • includes 1 month signals' },
-  { id: 'copy', label: 'Copy Trades', price: 49.99, subtitle: 'Monthly subscription' },
-  { id: 'signals', label: 'Signals', price: 74.99, subtitle: 'Monthly subscription' }
-];
-
-const formatCurrency = (value: number) => `$${value.toFixed(2)}`;
-
-const loadReferralCodes = (): ReferralCodeEntry[] => {
-  if (typeof window === 'undefined') return [];
-  try {
-    const raw = window.localStorage.getItem(REFERRAL_STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as ReferralCodeEntry[]) : [];
-  } catch {
-    return [];
-  }
-};
-
-const saveReferralCodes = (entries: ReferralCodeEntry[]) => {
-  if (typeof window === 'undefined') return;
-  window.localStorage.setItem(REFERRAL_STORAGE_KEY, JSON.stringify(entries));
-};
-
-const generateReferralCode = () => {
-  const segment = () => Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `CTX-${Date.now().toString(36).toUpperCase().slice(-4)}-${segment()}`;
-};
+type PayStatus = 'waiting' | 'checking' | 'paid' | 'error';
 
 const Pay: React.FC = () => {
-  const location = useLocation();
-  
-  const [formData, setFormData] = useState({
-    fullName: '',
-    email: '',
-    phone: '',
-    plan: '',
-    method: 'crypto', // default
-    transactionRef: '' // Added to track reference input
-  });
-  const [referralInput, setReferralInput] = useState('');
-  const [appliedReferral, setAppliedReferral] = useState<string | null>(null);
-  const [referralFeedback, setReferralFeedback] = useState<string | null>(null);
-  const [submissionResult, setSubmissionResult] = useState<SubmissionResult | null>(null);
+  const { t } = useTranslation();
+  const location = useLocation() as { state?: { planId?: string } };
 
-  useEffect(() => {
-    if (location.state?.planId) {
-      setFormData(prev => ({ ...prev, plan: location.state.planId }));
-    }
-  }, [location.state]);
+  const [orderId] = useState(() => `order-${Date.now()}`);
+  const [status, setStatus] = useState<PayStatus>('waiting');
+  const [txHash, setTxHash] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const selectedPlan = useMemo(() => planOptions.find(plan => plan.id === formData.plan as PlanOption['id']), [formData.plan]);
-  const GLOBAL_OFFER_ACTIVE = true;
-  
-  const previewDiscount = useMemo(() => {
-    if (!selectedPlan) return 0;
-    // If a referral code is applied, we use that. If not, and global offer is active, we use that.
-    // Usually referral codes don't stack with global offers unless specified. 
-    // Let's assume the 20% offer mentioned is the SAME 20%.
-    if (appliedReferral || GLOBAL_OFFER_ACTIVE) {
-      return Number((selectedPlan.price * 0.2).toFixed(2));
-    }
-    return 0;
-  }, [selectedPlan, appliedReferral]);
+  const [email, setEmail] = useState('');
+  const [startedNotified, setStartedNotified] = useState(false);
 
-  const previewTotal = selectedPlan ? Math.max(0, selectedPlan.price - previewDiscount) : 0;
+  const planId = location.state?.planId || 'course'; // default if none
 
-  const handleApplyReferral = () => {
-    const formatted = referralInput.trim().toUpperCase();
-    if (!formatted) {
-      setReferralFeedback('Enter a referral code to apply 20% off.');
-      setAppliedReferral(null);
-      return;
-    }
+  // PLAN PRICE: make planId "test" cost 0.02 USDT for testing
+  const amount = useMemo(() => {
+    if (planId === 'test') return 0.02; // TEST PRICE
 
-    const codes = loadReferralCodes();
-    const entry = codes.find(code => code.code === formatted);
+    const priceLabel = t(`pricing.${planId}.price`, { defaultValue: '$0' });
+    const num = parseFloat(String(priceLabel).replace(/[^0-9.]/g, ''));
+    return isNaN(num) ? 0 : num;
+  }, [planId, t]);
 
-    if (!entry) {
-      setReferralFeedback('Code not found. Double-check the spelling.');
-      setAppliedReferral(null);
-      return;
-    }
+  // USDT QR string (optional)
+  const tronUri = useMemo(() => {
+    if (!amount) return `tron:${MERCHANT_ADDRESS}`;
+    return `tron:${MERCHANT_ADDRESS}?amount=${amount}`;
+  }, [amount]);
 
-    if (entry.remainingUses <= 0) {
-      setReferralFeedback('This code already reached its 2-use limit.');
-      setAppliedReferral(null);
-      return;
-    }
-
-    setAppliedReferral(formatted);
-    setReferralFeedback(`Code applied! It will have ${entry.remainingUses - 1} use(s) left after this payment.`);
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const planInfo = selectedPlan;
-
-    if (!planInfo) {
-      setReferralFeedback('Please choose a plan to continue.');
-      return;
-    }
-
-    if (!formData.transactionRef) {
-        alert("Please enter the transaction reference or hash to verify your payment.");
-        return;
-    }
-
-    const codes = loadReferralCodes();
-    let discount = 0;
-    let referralUsed: string | undefined;
-
-    // Global offer or referral discount logic
-    if (GLOBAL_OFFER_ACTIVE || appliedReferral) {
-      discount = Number((planInfo.price * 0.2).toFixed(2));
-    }
-
-    if (appliedReferral) {
-      const entryIndex = codes.findIndex(code => code.code === appliedReferral);
-      if (entryIndex !== -1 && codes[entryIndex].remainingUses > 0) {
-         // Only consume usage if specifically applying a code, though with global offer it's redundant.
-         // Assuming the code might give EXTRA benefits? Or just stacks?
-         // For this request, let's say the code is CONSUMED if entered, but the discount is same.
-         codes[entryIndex] = {
-            ...codes[entryIndex],
-            remainingUses: codes[entryIndex].remainingUses - 1
-         };
-         referralUsed = appliedReferral;
-      }
-    }
-
-    let generatedCode: string | undefined;
-    if (planInfo.id === 'course') {
-      generatedCode = generateReferralCode();
-      codes.push({
-        code: generatedCode,
-        ownerEmail: formData.email || 'anonymous',
-        remainingUses: 1,
-        createdAt: new Date().toISOString()
+  // Called when user clicks "I sent the payment"
+  const notifyStarted = async () => {
+    if (!amount || startedNotified) return;
+    try {
+      const params = new URLSearchParams({
+        orderId,
+        amount: amount.toString(),
+        stage: 'started',
+        email: email || '',
       });
+      await fetch(`/api/check-usdt?${params.toString()}`);
+      setStartedNotified(true);
+    } catch (e) {
+      console.error('Failed to notify started', e);
     }
-
-    saveReferralCodes(codes);
-
-    setSubmissionResult({
-      planName: `${planInfo.label} (${planInfo.subtitle})`,
-      base: planInfo.price,
-      discount,
-      total: Math.max(planInfo.price - discount, 0),
-      referralGenerated: generatedCode,
-      referralUsed
-    });
-
-    setReferralFeedback(discount > 0 ? 'Referral discount applied successfully!' : null);
   };
+
+  // Poll blockchain via Netlify function
+  useEffect(() => {
+    if (!amount) return;
+
+    setStatus('checking');
+    setError(null);
+
+    const interval = setInterval(async () => {
+      try {
+        const params = new URLSearchParams({
+          orderId,
+          amount: amount.toString(),
+          email: email || '',
+          // stage defaults to "check"
+        });
+
+        const res = await fetch(`/api/check-usdt?${params.toString()}`);
+        if (!res.ok) {
+          throw new Error('Network error');
+        }
+
+        const data = (await res.json()) as {
+          paid?: boolean;
+          txHash?: string;
+          error?: string;
+        };
+
+        if (data.error) {
+          setError(data.error);
+        }
+
+        if (data.paid) {
+          setStatus('paid');
+          setTxHash(data.txHash || null);
+          clearInterval(interval);
+        } else {
+          setStatus('checking');
+        }
+      } catch (e: any) {
+        setError(e?.message || 'Unknown error');
+        setStatus('error');
+      }
+    }, 8000); // check every 8 seconds
+
+    return () => clearInterval(interval);
+  }, [orderId, amount, email]);
+
+  const explorerUrl = txHash
+    ? `https://tronscan.org/#/transaction/${txHash}`
+    : undefined;
 
   return (
-    <div className="pt-32 pb-20 min-h-screen bg-[#050505]">
-      <div className="container mx-auto px-4">
-        
-        {/* Header */}
-        <div className="text-center mb-16">
-          <motion.h1 
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl md:text-5xl font-bold text-white mb-6"
-          >
-            Complete Your Payment
-          </motion.h1>
-          <p className="text-slate-400 text-lg max-w-2xl mx-auto">
-            Secure payment processing with manual verification
+    <div className="min-h-screen flex items-center justify-center px-4">
+      <div className="max-w-xl w-full bg-black/60 border border-white/10 rounded-2xl p-6 space-y-6">
+        <h1 className="text-2xl font-bold text-white">
+          {t('pay.title', { defaultValue: 'Secure payment processing' })}
+        </h1>
+
+        <div className="space-y-2 text-sm text-gray-300">
+          <div>
+            <span className="font-semibold">Plan: </span>
+            <span>{t(`pricing.${planId}.title`, { defaultValue: planId })}</span>
+          </div>
+          <div>
+            <span className="font-semibold">Amount: </span>
+            <span>{amount ? `${amount} USDT (TRC20)` : 'N/A'}</span>
+          </div>
+          <div>
+            <span className="font-semibold">Order ID: </span>
+            <span>{orderId}</span>
+          </div>
+        </div>
+
+        <div className="space-y-3">
+          <h2 className="text-lg font-semibold text-white">
+            {t('pay.instructions.title', { defaultValue: 'Send USDT (TRC20) to this address' })}
+          </h2>
+          <div className="font-mono text-xs break-all bg-black/40 border border-white/10 rounded-lg p-3 text-green-300">
+            {MERCHANT_ADDRESS}
+          </div>
+          <p className="text-xs text-gray-400">
+            {t('pay.instructions.note', {
+              defaultValue:
+                'Send exactly the amount shown above on the TRC20 network. Your access will unlock automatically after payment is detected on-chain.',
+            })}
+          </p>
+
+          {/* Optional QR code */}
+          {/* <div className="flex justify-center pt-2">
+            <QRCode value={tronUri} size={140} />
+          </div> */}
+          <p className="text-[11px] text-gray-500 break-all">
+            URI: {tronUri}
           </p>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          
-          {/* Info Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            {[
-              { icon: ShieldCheck, title: "Secure Process", desc: "All payments are manually verified for your security" },
-              { icon: Clock, title: "Quick Verification", desc: "Payments verified within 24-48 hours" },
-              { icon: Wallet, title: "Multiple Options", desc: "Whish Money and Crypto payments accepted" }
-            ].map((item, i) => (
-              <motion.div 
-                key={i}
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="p-6 bg-dark-900 border border-white/5 rounded-2xl hover:border-[#D4AF37]/30 transition-colors"
-              >
-                <div className="w-12 h-12 bg-[#D4AF37]/10 rounded-full flex items-center justify-center mb-4">
-                  <item.icon className="w-6 h-6 text-[#D4AF37]" />
-                </div>
-                <h3 className="text-white font-bold mb-2">{item.title}</h3>
-                <p className="text-slate-400 text-sm">{item.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-
-          {/* Payment Form */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="lg:col-span-2 bg-dark-900 border border-[#D4AF37]/20 rounded-3xl p-8 md:p-12 shadow-[0_0_50px_rgba(212,175,55,0.05)]"
+        {/* Email + "I sent the payment" */}
+        <div className="space-y-3 pt-4">
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Your email (for receipt / access)"
+            className="w-full px-3 py-2 rounded-md bg-black/40 border border-white/10 text-sm text-white"
+          />
+          <button
+            type="button"
+            onClick={notifyStarted}
+            disabled={!email || startedNotified}
+            className="w-full py-2 rounded-md bg-emerald-500 hover:bg-emerald-600 text-black text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <h2 className="text-2xl font-bold text-white mb-8 pb-4 border-b border-white/5">Payment Information</h2>
-            
-            <form onSubmit={handleSubmit} className="space-y-6">
-              
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                    <User className="w-4 h-4 text-[#D4AF37]" /> Full Name *
-                  </label>
-                  <input 
-                    type="text" 
-                    required
-                    value={formData.fullName}
-                    onChange={e => setFormData({...formData, fullName: e.target.value})}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors"
-                    placeholder="John Doe"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-[#D4AF37]" /> Email *
-                  </label>
-                  <input 
-                    type="email" 
-                    required
-                    value={formData.email}
-                    onChange={e => setFormData({...formData, email: e.target.value})}
-                    className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors"
-                    placeholder="john@example.com"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-[#D4AF37]" /> Phone / WhatsApp (Optional)
-                </label>
-                <input 
-                  type="tel" 
-                  value={formData.phone}
-                  onChange={e => setFormData({...formData, phone: e.target.value})}
-                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors"
-                  placeholder="+1 234 567 890"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-[#D4AF37]" /> Select Plan *
-                </label>
-                <select 
-                  required
-                  value={formData.plan}
-                  onChange={e => setFormData({...formData, plan: e.target.value})}
-                  className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors appearance-none"
-                >
-                  <option value="" disabled>Choose your plan</option>
-                  {planOptions.map(option => (
-                    <option key={option.id} value={option.id}>
-                      {`${option.label} - ${formatCurrency(option.price)}${option.subtitle.includes('Monthly') ? '/month' : ''}`}
-                    </option>
-                  ))}
-                </select>
-                {selectedPlan && (
-                  <p className="text-xs text-slate-500">
-                    {selectedPlan.subtitle}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-slate-300">
-                  Referral / Invite Code (Optional)
-                </label>
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <input
-                    type="text"
-                    value={referralInput}
-                    onChange={e => setReferralInput(e.target.value.toUpperCase())}
-                    className="flex-1 bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors uppercase tracking-widest"
-                    placeholder="CTX-XXXX-XXXX"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleApplyReferral}
-                    className="px-6 py-3 rounded-xl border border-[#D4AF37]/60 text-[#D4AF37] font-semibold hover:bg-[#D4AF37]/10 transition-colors"
-                  >
-                    Apply
-                  </button>
-                </div>
-                {referralFeedback && (
-                  <p className="text-xs text-primary/80">{referralFeedback}</p>
-                )}
-              </div>
-
-              <div className="space-y-4 pt-4">
-                <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-[#D4AF37]" /> Payment Method *
-                </label>
-                
-                <div className="grid md:grid-cols-2 gap-4">
-                  <div 
-                    onClick={() => setFormData({...formData, method: 'whish'})}
-                    className={`cursor-pointer p-4 rounded-xl border flex items-center gap-3 transition-all ${formData.method === 'whish' ? 'bg-[#D4AF37]/10 border-[#D4AF37]' : 'bg-black/50 border-white/10 hover:border-white/30'}`}
-                  >
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.method === 'whish' ? 'border-[#D4AF37]' : 'border-slate-500'}`}>
-                      {formData.method === 'whish' && <div className="w-2.5 h-2.5 bg-[#D4AF37] rounded-full" />}
-                    </div>
-                    <span className="text-white font-medium">Whish Money</span>
-                  </div>
-
-                  <div 
-                    onClick={() => setFormData({...formData, method: 'crypto'})}
-                    className={`cursor-pointer p-4 rounded-xl border flex items-center gap-3 transition-all ${formData.method === 'crypto' ? 'bg-[#D4AF37]/10 border-[#D4AF37]' : 'bg-black/50 border-white/10 hover:border-white/30'}`}
-                  >
-                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${formData.method === 'crypto' ? 'border-[#D4AF37]' : 'border-slate-500'}`}>
-                      {formData.method === 'crypto' && <div className="w-2.5 h-2.5 bg-[#D4AF37] rounded-full" />}
-                    </div>
-                    <span className="text-white font-medium">Cryptocurrency</span>
-                  </div>
-                </div>
-
-                {/* Dynamic Payment Details */}
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  className="bg-black/30 rounded-xl p-6 border border-white/10 mt-4"
-                >
-                  {formData.method === 'whish' ? (
-                    <div className="space-y-6">
-                      <p className="text-sm text-slate-300">
-                        Transfer exactly <span className="text-[#D4AF37] font-bold">{formatCurrency(previewTotal)}</span> to the Whish account below.
-                      </p>
-                      
-                      <div className="space-y-3">
-                        <div className="bg-dark-800 p-4 rounded-lg border border-[#D4AF37]/20 flex items-center justify-between group">
-                            <div>
-                              <p className="text-xs text-slate-500 mb-1">Whish Account Number</p>
-                              <code className="text-[#D4AF37] font-mono font-bold text-lg">81 394 607</code>
-                            </div>
-                            <button 
-                              type="button"
-                              onClick={() => navigator.clipboard.writeText('81394607')}
-                              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                              title="Copy Number"
-                            >
-                              <Copy className="w-4 h-4 text-slate-400 group-hover:text-white" />
-                            </button>
-                        </div>
-                        <div className="bg-dark-800 p-4 rounded-lg border border-[#D4AF37]/20">
-                            <p className="text-xs text-slate-500 mb-1">Account Name</p>
-                            <p className="text-white font-medium">Elian Chaaya</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm text-slate-400">Transaction Reference</label>
-                        <input 
-                          type="text" 
-                          required
-                          value={formData.transactionRef}
-                          onChange={e => setFormData({...formData, transactionRef: e.target.value})}
-                          className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors"
-                          placeholder="Enter your transaction reference"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <p className="text-sm text-slate-300">
-                        Send exactly <span className="text-[#D4AF37] font-bold">{formatCurrency(previewTotal)}</span> (USDT TRC20).
-                      </p>
-                      
-                      <div className="space-y-3">
-                        <div className="bg-dark-800 p-4 rounded-lg border border-[#D4AF37]/20 break-all group relative">
-                            <p className="text-xs text-slate-500 mb-1">Wallet Address (TRC20)</p>
-                            <code className="text-[#D4AF37] font-mono font-bold text-sm md:text-base block mb-2">TB98b4LLE8fJeSsxpmNWd979XY9FiB3KHN</code>
-                            <button 
-                              type="button"
-                              onClick={() => navigator.clipboard.writeText('TB98b4LLE8fJeSsxpmNWd979XY9FiB3KHN')}
-                              className="absolute top-3 right-3 p-2 hover:bg-white/10 rounded-lg transition-colors"
-                              title="Copy Address"
-                            >
-                              <Copy className="w-4 h-4 text-slate-400 group-hover:text-white" />
-                            </button>
-                        </div>
-                        <div className="bg-dark-800 p-4 rounded-lg border border-[#D4AF37]/20 flex justify-between items-center">
-                            <div>
-                              <p className="text-xs text-slate-500 mb-1">Amount to Send</p>
-                              <p className="text-white font-bold">{formatCurrency(previewTotal)}</p>
-                            </div>
-                            <button 
-                              type="button"
-                              onClick={() => navigator.clipboard.writeText(previewTotal.toString())}
-                              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
-                              title="Copy Amount"
-                            >
-                              <Copy className="w-4 h-4 text-slate-400 group-hover:text-white" />
-                            </button>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="text-sm text-slate-400">Transaction Hash / Reference</label>
-                        <input 
-                          type="text" 
-                          required
-                          value={formData.transactionRef}
-                          onChange={e => setFormData({...formData, transactionRef: e.target.value})}
-                          className="w-full bg-black/50 border border-white/10 rounded-xl px-4 py-3 text-white focus:border-[#D4AF37] focus:outline-none transition-colors"
-                          placeholder="Enter your transaction hash (TXID)"
-                        />
-                        <p className="text-xs text-slate-500">Paste the TXID from your wallet history here to verify payment.</p>
-                      </div>
-                    </div>
-                  )}
-                </motion.div>
-              </div>
-
-              {selectedPlan && (
-                <div className="p-4 rounded-2xl bg-black/40 border border-white/5 space-y-2">
-                  <div className="flex justify-between text-sm text-slate-300">
-                    <span>Plan total</span>
-                    <span>{formatCurrency(selectedPlan.price)}</span>
-                  </div>
-                  {appliedReferral && (
-                    <div className="flex justify-between text-sm text-primary">
-                      <span>Referral discount (20%)</span>
-                      <span>-{formatCurrency(previewDiscount)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-lg font-bold text-white pt-1 border-t border-white/5">
-                    <span>Amount due</span>
-                    <span>{formatCurrency(previewTotal)}</span>
-                  </div>
-                </div>
-              )}
-
-              <button 
-                type="submit"
-                className="w-full mt-8 py-4 bg-gradient-to-r from-[#AA771C] to-[#D4AF37] text-black font-bold rounded-xl hover:shadow-[0_0_20px_rgba(212,175,55,0.4)] transition-all"
-              >
-                Submit Payment
-              </button>
-
-            </form>
-
-            {submissionResult && (
-              <div className="mt-10 p-6 rounded-2xl border border-white/10 bg-black/40 space-y-4">
-                <div>
-                  <p className="text-sm uppercase tracking-[0.3em] text-primary/70 mb-2">Payment Summary</p>
-                  <h3 className="text-white text-xl font-semibold">{submissionResult.planName}</h3>
-                </div>
-                <div className="space-y-1 text-sm text-slate-300">
-                  <div className="flex justify-between">
-                    <span>Base price</span>
-                    <span>{formatCurrency(submissionResult.base)}</span>
-                  </div>
-                  {submissionResult.discount > 0 && (
-                    <div className="flex justify-between text-primary">
-                      <span>Referral discount</span>
-                      <span>-{formatCurrency(submissionResult.discount)}</span>
-                    </div>
-                  )}
-                  <div className="flex justify-between text-white font-semibold text-lg pt-2 border-t border-white/5">
-                    <span>Total</span>
-                    <span>{formatCurrency(submissionResult.total)}</span>
-                  </div>
-                </div>
-
-                {submissionResult.referralGenerated && (
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-[#AA771C]/20 via-[#D4AF37]/10 to-transparent border border-[#D4AF37]/50 text-white">
-                    <p className="text-sm uppercase tracking-wide text-[#F5D28A]">Share & Save (1 use max)</p>
-                    <p className="mt-2 text-base">Share this code with a friend or use it yourself for 20% off any plan:</p>
-                    <code className="mt-3 inline-flex px-4 py-2 bg-black/40 rounded-xl font-mono text-lg tracking-widest">
-                      {submissionResult.referralGenerated}
-                    </code>
-                    <p className="text-xs text-slate-300 mt-2">Each code works once.</p>
-                  </div>
-                )}
-
-                {submissionResult.referralUsed && !submissionResult.referralGenerated && (
-                  <p className="text-sm text-slate-400">
-                    Referral code {submissionResult.referralUsed} was redeemed. Remaining uses update automatically.
-                  </p>
-                )}
-              </div>
-            )}
-          </motion.div>
+            {startedNotified ? 'Payment started – check your email' : 'I sent the payment'}
+          </button>
         </div>
+
+        <div className="space-y-2">
+          <div className="text-sm font-semibold text-white">
+            Status:{' '}
+            {status === 'waiting' && 'Waiting'}
+            {status === 'checking' && 'Waiting for payment (checking blockchain...)'}
+            {status === 'paid' && 'Payment received ✅'}
+            {status === 'error' && 'Error while checking payment'}
+          </div>
+          {error && (
+            <p className="text-xs text-red-400">
+              {error}
+            </p>
+          )}
+          {status === 'paid' && explorerUrl && (
+            <a
+              href={explorerUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="text-xs text-blue-400 underline"
+            >
+              View transaction on TRONSCAN
+            </a>
+          )}
+        </div>
+
+        {/* Keep your existing manual verification / referral sections below if needed */}
       </div>
     </div>
   );
