@@ -4,7 +4,6 @@ import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Copy } from 'lucide-react';
 import QRCode from 'react-qr-code';
-import { button } from 'framer-motion/client';
 
 const MERCHANT_ADDRESS = 'TB98b4LLE8fJeSsxpmNWd979XY9FiB3KHN';
 
