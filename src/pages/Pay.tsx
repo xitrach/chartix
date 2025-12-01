@@ -11,15 +11,7 @@ const Pay: React.FC = () => {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, []);
-const params = new URLSearchParams({
-  orderId,
-  amount: amount.toString(),
-  email,
-  firstName,
-  lastName,
-  phone,
-  plan: t(`pricing.${planId}.title`, { defaultValue: planId }),  // Add this
-});
+
   const { t } = useTranslation();
   const location = useLocation() as { state?: { planId?: string } };
 
@@ -67,14 +59,15 @@ const params = new URLSearchParams({
     if (!amount || startedNotified) return;
     setError(null);
     try {
-      const params = new URLSearchParams({
-        orderId,
-        amount: amount.toString(),
-        stage: 'started',
-        email: email || '',
-        firstName: firstName || '',
-        lastName: lastName || '',
-        phone: phone || '',
+     const params = new URLSearchParams({
+  orderId,
+  amount: amount.toString(),
+  email,
+  firstName,
+  lastName,
+  phone,
+  plan: t(`pricing.${planId}.title`, { defaultValue: planId }),  // Add this
+});
       });
       await fetch(`/.netlify/functions/check-usdt?${params.toString()}`);
       setStartedNotified(true);
