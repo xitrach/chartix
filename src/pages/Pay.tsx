@@ -55,27 +55,37 @@ const Pay: React.FC = () => {
   }, [amount]);
 
   // Called when user clicks "I sent the payment"
-  const notifyStarted = async () => {
-    if (!amount || startedNotified) return;
+ const notifyStarted = async () => {
+    if (!amount || startedNotified || !formValid || !emailValid) return;
+
     setError(null);
+    setLoading(true);
+
     try {
-     const params = new URLSearchParams({
-  orderId,
-  amount: amount.toString(),
-  email,
-  firstName,
-  lastName,
-  phone,
-  plan: t(`pricing.${planId}.title`, { defaultValue: planId }),  // Add this
-});
+      const params = new URLSearchParams({
+        orderId,
+        amount: amount.toString(),
+        email,
+        firstName,
+        lastName,
+        phone,
+        plan: planTitle,
       });
-      await fetch(`/.netlify/functions/check-usdt?${params.toString()}`);
+
+      const res = await fetch(`/.netlify/functions/check-usdt?${params.toString()}`);
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send notification');
+      }
+
       setStartedNotified(true);
     } catch (e: any) {
-      console.error('Failed to notify started', e);
+      console.error('Failed to notify:', e);
       setError(e?.message || 'Failed to send notification. Please try again.');
+    } finally {
+      setLoading(false);
     }
-
   };
 
   return (
