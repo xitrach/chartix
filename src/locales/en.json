@@ -79,7 +79,7 @@
     "subtitle": "Choose the plan that fits your needs",
     "course": {
       "title": "Course",
-      "price": "$399.99",
+      "price": "$499.99",
       "desc": "Complete Forex mastery course with 1 month free signals",
       "offer": "Enroll now and unlock 1 month of premium Discord signals plus a shareable 20% invite code valid for your next purchase or for a friend.",
       "referral_perk": "After purchase you receive a personal invite code worth 20% off any plan. Usable for your own future purchase or for a friend (1 total use).",
@@ -90,7 +90,7 @@
         "Lifetime Access"
       ],
       "details": [
-        "Course $399.99 + 1 month free signals included",
+        "Course $499.99 + 1 month free signals included",
         "40+ step video roadmap split across beginner, intermediate and pro phases",
         "Live mentorship calls twice per week with Q&A replays",
         "Full library of strategy templates, checklists and risk management trackers",
@@ -102,7 +102,7 @@
     },
     "copy": {
       "title": "Copy Trades",
-      "price": "$49.99",
+      "price": "$62.49",
       "period": "/month",
       "desc": "Connect to my recommended broker for seamless copy trading: when you open a trade, the same position opens and closes on your account automatically using your preset risk management.",
       "features": [
@@ -114,7 +114,7 @@
     },
     "signals": {
       "title": "Signals (with your own broker)",
-      "price": "$74.99",
+      "price": "$93.74",
       "period": "/month",
       "desc": "Daily Forex signals for any broker of your choice",
       "features": [

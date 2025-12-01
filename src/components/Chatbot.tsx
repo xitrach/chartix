@@ -24,7 +24,7 @@ const Chatbot: React.FC = () => {
 
     if (isAr) {
       if (q.includes('سعر') || q.includes('تكلفة') || q.includes('اشتراك') || q.includes('بكام')) {
-        return "نقدم 3 خطط رئيسية:\n1. الدورة الكاملة: $399.99 (مرة واحدة)\n2. نسخ الصفقات: $49.99/شهرياً\n3. الإشارات فقط: $74.99/شهرياً\n\nيمكنك الدفع عبر العملات الرقمية أو البطاقات البنكية.";
+        return "نقدم 3 خطط رئيسية:\n1. الدورة الكاملة: $499.99 (مرة واحدة)\n2. نسخ الصفقات: $62.49/شهرياً\n3. الإشارات فقط: $93.74/شهرياً\n\nيمكنك الدفع عبر العملات الرقمية أو البطاقات البنكية.";
       }
       if (q.includes('مرحبا') || q.includes('السلام') || q.includes('اهلا')) return "مرحباً بك في Chartix Mentorship! 👋\nأنا مساعدك الذكي هنا.\nيمكنني إجابتك عن:\n- تفاصيل الدورة والأسعار\n- كيفية الانضمام للديسكورد\n- طرق الدفع\n\nكيف يمكنني مساعدتك؟";
       if (q.includes('ديسكورد') || q.includes('مجتمع')) return "مجتمع الديسكورد هو قلب الأكاديمية! 🚀\nنشارك فيه:\n- صفقات لايف يومياً\n- تحليلات للسوق\n- مجتمع داعم من المتداولين\n\nاضغط على زر 'انضم إلى ديسكورد' في القائمة للدخول.";
@@ -34,7 +34,7 @@ const Chatbot: React.FC = () => {
       return "عذراً، لم أفهم سؤالك تماماً. 🤔\nيمكنك سؤالي عن الأسعار، الدورة، أو الديسكورد.\nأو يمكنك الانضمام لمجتمعنا للتحدث مع فريق الدعم مباشرة.";
     } else {
       if (q.includes('price') || q.includes('cost') || q.includes('subscription') || q.includes('much')) {
-        return "We offer 3 main plans:\n1. Full Course: $399.99 (One-time payment)\n2. Copy Trading: $49.99/month\n3. Signals Only: $74.99/month\n\nAll plans give you access to our community!";
+        return "We offer 3 main plans:\n1. Full Course: $499.99 (One-time payment)\n2. Copy Trading: $62.49/month\n3. Signals Only: $93.74/month\n\nAll plans give you access to our community!";
       }
       if (q.includes('hello') || q.includes('hi') || q.includes('hey')) return "Welcome to Chartix Mentorship! 👋\nI'm your AI assistant.\nI can help you with:\n- Course details & Pricing\n- Joining Discord\n- Payment methods\n\nWhat would you like to know?";
       if (q.includes('discord') || q.includes('community')) return "Our Discord is where the magic happens! 🚀\nWe share:\n- Live daily signals\n- Market analysis\n- A supportive community\n\nClick the 'Join Discord' button in the menu to get started.";
