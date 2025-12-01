@@ -1,18 +1,16 @@
 // netlify/functions/check-usdt.ts
 import type { Handler, HandlerEvent } from '@netlify/functions';
 
-// USDT TRC20 contract and your wallet
-const USDT_TRC20_CONTRACT = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
 const MERCHANT_ADDRESS = 'TB98b4LLE8fJeSsxpmNWd979XY9FiB3KHN';
+const ADMIN_EMAIL = 'chartix1@gmail.com';
 
-// Email sender via Resend
 async function sendEmail(to: string, subject: string, html: string) {
   const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.FROM_EMAIL || 'no-reply@yourdomain.com';
+  const from = process.env.FROM_EMAIL || 'onboarding@resend.dev';
 
   if (!apiKey) {
-    console.warn('RESEND_API_KEY not set');
-    return;
+    console.error('RESEND_API_KEY not set');
+    throw new Error('Email service not configured');
   }
 
   const res = await fetch('https://api.resend.com/emails', {
@@ -27,165 +25,81 @@ async function sendEmail(to: string, subject: string, html: string) {
   if (!res.ok) {
     const text = await res.text();
     console.error('Email send failed:', text);
+    throw new Error(`Email failed: ${text}`);
   }
+
+  return res.json();
 }
 
-const handler: Handler = async (event: HandlerEvent) => {
+export const handler: Handler = async (event: HandlerEvent) => {
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Content-Type',
+      },
+      body: '',
+    };
+  }
+
   try {
     const params = event.queryStringParameters || {};
-    const orderId = params.orderId;
-    const rawAmount = params.amount;
-    const email = params.email || '';
-    const stage = params.stage || 'check';
+    const { orderId, amount, email, firstName, lastName, phone, plan } = params;
 
-    if (!orderId || !rawAmount) {
+    if (!orderId || !amount) {
       return {
         statusCode: 400,
         body: JSON.stringify({ error: 'Missing orderId or amount' }),
       };
     }
 
-    const expectedAmount = parseFloat(rawAmount);
-    if (Number.isNaN(expectedAmount)) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Invalid amount' }),
-      };
-    }
-
-    const adminEmail = 'chartix1@gmail.com';
-
-    // 1) stage=started: only send "payment started" emails
-    if (stage === 'started') {
-      const subject = `New payment started: ${orderId}`;
-      const html = `
-        <p>A new USDT TRC20 payment has been initiated.</p>
-        <ul>
-          <li>Order ID: <b>${orderId}</b></li>
-          <li>Amount: <b>${expectedAmount} USDT (TRC20)</b></li>
-          <li>Address: de>${MERCHANT_ADDRESS}</code></li>
-          ${email ? `<li>Client email: ${email}</li>` : ''}
-        </ul>
-      `;
-
-      if (adminEmail) {
-        await sendEmail(adminEmail, subject, html);
-      }
-      if (email) {
-        await sendEmail(
-          email,
-          'We received your payment request',
-          `<p>We are waiting for your payment of <b>${expectedAmount} USDT (TRC20)</b> to:</p>
-           <p>de>${MERCHANT_ADDRESS}</code></p>
-           <p>Order ID: <b>${orderId}</b></p>`
-        );
-      }
-
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ ok: true, stage: 'started' }),
-      };
-    }
-
-    // 2) stage=check: check blockchain for USDT TRC20 payment via TronGrid/Tron API
-    const tronApiKey = process.env.TRON_API_KEY;
-    if (!tronApiKey) {
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: 'Missing TRON_API_KEY' }),
-      };
-    }
-
-    // Example TronGrid-style endpoint for TRC20 transfers by address+contract.
-    // Adjust the base URL/path if your provider docs use a different one.
-    const url =
-      `https://api.trongrid.io/v1/contracts/${USDT_TRC20_CONTRACT}/events` +
-      `?event_name=Transfer&only_to=true&to=${MERCHANT_ADDRESS}&limit=20`;
-
-    const res = await fetch(url, {
-      headers: {
-        'TRON-PRO-API-KEY': tronApiKey,
-      },
-    });
-
-    if (!res.ok) {
-      return {
-        statusCode: 502,
-        body: JSON.stringify({ error: 'Upstream error', status: res.status }),
-      };
-    }
-
-    const data = (await res.json()) as any;
-    const events = data?.data || [];
-
-    const tolerance = 0.000001;
-    let matchTx: any = null;
-
-    for (const ev of events) {
-      // TronGrid TRC20 Transfer event usually has result.value or result.amount,
-      // check your provider docs and adjust if needed.
-      const result = ev.result || {};
-      const rawValue =
-        result.value ||
-        result.amount ||
-        '0';
-
-      // USDT has 6 decimals on TRON
-      const onChainAmount = parseFloat(rawValue) / 1_000_000;
-
-      if (Math.abs(onChainAmount - expectedAmount) <= tolerance) {
-        matchTx = ev;
-        break;
-      }
-    }
-
-    if (!matchTx) {
-      return {
-        statusCode: 200,
-        body: JSON.stringify({ paid: false }),
-      };
-    }
-
-    const txHash = matchTx.transaction_id || matchTx.transactionId || matchTx.txID;
-    const explorerUrl = `https://tronscan.org/#/transaction/${txHash}`;
-
-    const subjectPaid = `Payment confirmed: ${orderId}`;
-    const htmlPaid = `
-      <p>A USDT TRC20 payment has been confirmed.</p>
-      <ul>
-        <li>Order ID: <b>${orderId}</b></li>
-        <li>Amount: <b>${expectedAmount} USDT (TRC20)</b></li>
-        <li>Address: de>${MERCHANT_ADDRESS}</code></li>
-        <li>Tx Hash: <a href="${explorerUrl}">${txHash}</a></li>
-      </ul>
+    // Email to admin
+    const adminSubject = `💰 New Payment: ${orderId}`;
+    const adminHtml = `
+      <h2>New USDT Payment Initiated</h2>
+      <table style="border-collapse: collapse; width: 100%; max-width: 500px;">
+        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Order ID</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${orderId}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Amount</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${amount} USDT (TRC20)</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Plan</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${plan || 'N/A'}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Customer</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${firstName || ''} ${lastName || ''}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Email</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${email || 'Not provided'}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Phone</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${phone || 'Not provided'}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Wallet</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${MERCHANT_ADDRESS}</td></tr>
+      </table>
+      <p style="margin-top: 20px; color: #666;">Please verify payment on <a href="https://tronscan.org/#/address/${MERCHANT_ADDRESS}">TronScan</a></p>
     `;
 
-    if (adminEmail) {
-      await sendEmail(adminEmail, subjectPaid, htmlPaid);
-    }
+    await sendEmail(ADMIN_EMAIL, adminSubject, adminHtml);
+
+    // Email to customer
     if (email) {
-      await sendEmail(
-        email,
-        'Your payment is confirmed',
-        `<p>Your payment of <b>${expectedAmount} USDT (TRC20)</b> has been confirmed.</p>
-         <p>Order ID: <b>${orderId}</b></p>
-         <p>You can now access your content.</p>
-         <p>Tx: <a href="${explorerUrl}">${txHash}</a></p>`
-      );
+      const customerSubject = `Your payment request - Order ${orderId}`;
+      const customerHtml = `
+        <h2>Thank you for your order!</h2>
+        <p>We received your payment notification. Please ensure you've sent the exact amount to our wallet.</p>
+        <table style="border-collapse: collapse; width: 100%; max-width: 500px;">
+          <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Order ID</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${orderId}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Amount</strong></td><td style="padding: 8px; border: 1px solid #ddd;">${amount} USDT (TRC20)</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd;"><strong>Send to</strong></td><td style="padding: 8px; border: 1px solid #ddd; font-family: monospace; font-size: 12px;">${MERCHANT_ADDRESS}</td></tr>
+        </table>
+        <p style="margin-top: 20px;">Once we verify your payment on the blockchain, we'll send you access details.</p>
+      `;
+
+      await sendEmail(email, customerSubject, customerHtml);
     }
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ paid: true, txHash }),
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ ok: true, message: 'Notifications sent' }),
     };
   } catch (e: any) {
-    console.error(e);
+    console.error('Error:', e);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: 'Internal error', details: e?.message }),
+      headers: { 'Access-Control-Allow-Origin': '*' },
+      body: JSON.stringify({ error: e?.message || 'Internal error' }),
     };
   }
 };
-
-// CommonJS export
-module.exports = { handler };
