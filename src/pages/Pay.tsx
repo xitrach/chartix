@@ -29,12 +29,11 @@ const Pay: React.FC = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  const amount = useMemo(() => {
-    if (planId === 'test') return 10;
-    const priceLabel = t(`pricing.${planId}.price`, { defaultValue: '$0' });
-    const num = parseFloat(String(priceLabel).replace(/[^0-9.]/g, ''));
-    return isNaN(num) ? 0 : num;
-  }, [planId, t]);
+ const amount = useMemo(() => {
+  const priceLabel = t(`pricing.${planId}.price`, { defaultValue: '$0' });
+  const num = parseFloat(String(priceLabel).replace(/[^0-9.]/g, ''));
+  return isNaN(num) ? 0 : num;
+}, [planId, t]);
 
   const planTitle = t(`pricing.${planId}.title`, { defaultValue: planId });
 
