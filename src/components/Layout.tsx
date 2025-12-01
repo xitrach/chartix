@@ -24,9 +24,9 @@ const Layout: React.FC = () => {
 
   const navLinks = [
     { name: t('common.menu.home'), path: '/' },
-    { name: t('common.menu.mentorship'), path: '#mentorship' },
-    { name: t('common.menu.pricing'), path: '#pricing' },
-    { name: t('common.menu.pay'), path: '#pay' },
+    { name: t('common.menu.mentorship'), path: '/#mentorship' },
+    { name: t('common.menu.pricing'), path: '/pricing' },
+    //{ name: t('common.menu.pay'), path: '#pay' },
     { name: t('common.menu.discord'), path: 'https://discord.gg/XJFvs69q', external: true },
   ];
 

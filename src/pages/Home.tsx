@@ -52,15 +52,24 @@ const Home: React.FC = () => {
   const { t, i18n } = useTranslation();
   const isRTL = i18n.language === 'ar';
   const [selectedPlanDetails, setSelectedPlanDetails] = useState<PlanDetailContent | null>(null);
-  const [showIntro, setShowIntro] = useState(true);
+  
+  // Check sessionStorage to see if intro has been shown
+  const [showIntro, setShowIntro] = useState(() => {
+    return !sessionStorage.getItem('introShown');
+  });
 
   useEffect(() => {
-    // Animation duration is 4s in CSS, we hide it slightly before or after
-    const timer = setTimeout(() => {
-      setShowIntro(false);
-    }, 6500);
-    return () => clearTimeout(timer);
-  }, []);
+    if (showIntro) {
+      const timer = setTimeout(() => {
+        setShowIntro(false);
+        // Mark intro as shown in this session
+        sessionStorage.setItem('introShown', 'true');
+      }, 6500); // matches your animation duration
+
+      return () => clearTimeout(timer);
+    }
+  }, [showIntro]);
+
 
   const stats = [
     { label: t('stats.students'), value: "1,000+" },

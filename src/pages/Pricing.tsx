@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState,useEffect  } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +6,9 @@ import { CheckCircle2, ArrowRight, Star } from 'lucide-react';
 import PlanDetailsModal, { PlanDetailContent } from '../components/PlanDetailsModal';
 
 const Pricing: React.FC = () => {
+  useEffect(() => {
+    window.scrollTo(0, 0); 
+  }, []);
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const isRTL = i18n.language === 'ar';
@@ -108,14 +111,7 @@ const Pricing: React.FC = () => {
                     </div>
                   )}
 
-                  <button
-                    type="button"
-                    onClick={openDetails}
-                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-white transition-colors"
-                  >
-                    {t('common.read_more')}
-                    <ArrowRight className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
-                  </button>
+                  
                 </div>
 
                 {features.length > 0 && (
@@ -126,6 +122,14 @@ const Pricing: React.FC = () => {
                         <span>{feature}</span>
                       </li>
                     ))}
+                    <button
+                    type="button"
+                    onClick={openDetails}
+                    className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-white transition-colors"
+                  >
+                    {t('common.read_more')}
+                    <ArrowRight className={`w-4 h-4 ${isRTL ? 'rotate-180' : ''}`} />
+                  </button>
                   </ul>
                 )}
 

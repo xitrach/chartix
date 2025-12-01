@@ -5,6 +5,8 @@ import Home from './pages/Home';
 import Pricing from './pages/Pricing';
 import Pay from './pages/Pay';
 import Layout from './components/Layout';
+import ScrollToHash from './components/ScrollToHash';
+
 
 function App() {
   const { i18n } = useTranslation();
@@ -16,6 +18,8 @@ function App() {
 
   return (
     <Router>
+  <ScrollToHash />
+
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />

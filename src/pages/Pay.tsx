@@ -2,38 +2,54 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Copy } from 'lucide-react';
+import QRCode from 'react-qr-code';
+import { button } from 'framer-motion/client';
 
-// If you use a QR component, import it here, for example:
-// import QRCode from 'react-qr-code';
-
-const MERCHANT_ADDRESS = 'TB98b4LLE8fJeSsxpmNWd979XY9FiB3KHN'; // same as in function
-
-type PayStatus = 'waiting' | 'checking' | 'paid' | 'error';
+const MERCHANT_ADDRESS = 'TB98b4LLE8fJeSsxpmNWd979XY9FiB3KHN';
 
 const Pay: React.FC = () => {
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   const { t } = useTranslation();
   const location = useLocation() as { state?: { planId?: string } };
 
+  const [copied, setCopied] = useState(false);
   const [orderId] = useState(() => `order-${Date.now()}`);
-  const [status, setStatus] = useState<PayStatus>('waiting');
-  const [txHash, setTxHash] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [startedNotified, setStartedNotified] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const planId = location.state?.planId || 'course'; // default if none
-
-  // PLAN PRICE: make planId "test" cost 0.02 USDT for testing
+  const planId = location.state?.planId || 'course';
+  const formValid = Boolean(firstName && lastName && phone && email);
+  const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  // PLAN PRICE: make planId "test" cost 10 USDT for testing
   const amount = useMemo(() => {
-    if (planId === 'test') return 10; // TEST PRICE
+    if (planId === 'test') return 10;
 
     const priceLabel = t(`pricing.${planId}.price`, { defaultValue: '$0' });
     const num = parseFloat(String(priceLabel).replace(/[^0-9.]/g, ''));
     return isNaN(num) ? 0 : num;
   }, [planId, t]);
 
-  // USDT QR string (optional)
+  const handleCopy = () => {
+    navigator.clipboard
+      .writeText(MERCHANT_ADDRESS)
+      .then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      })
+      .catch((err) => {
+        console.error('Failed to copy:', err);
+      });
+  };
+
   const tronUri = useMemo(() => {
     if (!amount) return `tron:${MERCHANT_ADDRESS}`;
     return `tron:${MERCHANT_ADDRESS}?amount=${amount}`;
@@ -42,70 +58,25 @@ const Pay: React.FC = () => {
   // Called when user clicks "I sent the payment"
   const notifyStarted = async () => {
     if (!amount || startedNotified) return;
+    setError(null);
     try {
       const params = new URLSearchParams({
         orderId,
         amount: amount.toString(),
         stage: 'started',
         email: email || '',
+        firstName: firstName || '',
+        lastName: lastName || '',
+        phone: phone || '',
       });
       await fetch(`/api/check-usdt?${params.toString()}`);
       setStartedNotified(true);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Failed to notify started', e);
+      setError(e?.message || 'Failed to send notification. Please try again.');
     }
+
   };
-
-  // Poll blockchain via Netlify function
-  useEffect(() => {
-    if (!amount) return;
-
-    setStatus('checking');
-    setError(null);
-
-    const interval = setInterval(async () => {
-      try {
-        const params = new URLSearchParams({
-          orderId,
-          amount: amount.toString(),
-          email: email || '',
-          // stage defaults to "check"
-        });
-
-        const res = await fetch(`/api/check-usdt?${params.toString()}`);
-        if (!res.ok) {
-          throw new Error('Network error');
-        }
-
-        const data = (await res.json()) as {
-          paid?: boolean;
-          txHash?: string;
-          error?: string;
-        };
-
-        if (data.error) {
-          setError(data.error);
-        }
-
-        if (data.paid) {
-          setStatus('paid');
-          setTxHash(data.txHash || null);
-          clearInterval(interval);
-        } else {
-          setStatus('checking');
-        }
-      } catch (e: any) {
-        setError(e?.message || 'Unknown error');
-        setStatus('error');
-      }
-    }, 8000); // check every 8 seconds
-
-    return () => clearInterval(interval);
-  }, [orderId, amount, email]);
-
-  const explorerUrl = txHash
-    ? `https://tronscan.org/#/transaction/${txHash}`
-    : undefined;
 
   return (
     <div className="min-h-screen flex items-center justify-center px-4">
@@ -133,70 +104,99 @@ const Pay: React.FC = () => {
           <h2 className="text-lg font-semibold text-white">
             {t('pay.instructions.title', { defaultValue: 'Send USDT (TRC20) to this address' })}
           </h2>
-          <div className="font-mono text-xs break-all bg-black/40 border border-white/10 rounded-lg p-3 text-green-300">
-            {MERCHANT_ADDRESS}
+          <div className="flex items-center justify-between bg-black/40 border border-white/10 rounded-lg p-3">
+            <span className="font-mono text-xs text-green-300 break-all">
+              {MERCHANT_ADDRESS}
+            </span>
+
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="ml-2 p-2 rounded-full bg-gradient-to-r from-[#AA771C] via-[#D4AF37] to-[#AA771C] hover:brightness-110 transition-all flex items-center justify-center"
+
+              title="Copy to clipboard"
+            >
+              <Copy
+                className={`w-4 h-4 ${copied ? 'text-emerald-400' : 'text-[#AA771C]'}`}
+              />
+            </button>
           </div>
+
+          <div className="flex justify-center pt-2">
+            <QRCode value={MERCHANT_ADDRESS} size={140} />
+          </div>
+
           <p className="text-xs text-gray-400">
             {t('pay.instructions.note', {
               defaultValue:
-                'Send exactly the amount shown above on the TRC20 network. Your access will unlock automatically after payment is detected on-chain.',
+                'Send exactly the amount shown above on the TRC20 network. After you send the payment, we will verify it and contact you by email.',
             })}
           </p>
 
-          {/* Optional QR code */}
-          {/* <div className="flex justify-center pt-2">
-            <QRCode value={tronUri} size={140} />
-          </div> */}
-          <p className="text-[11px] text-gray-500 break-all">
-            URI: {tronUri}
-          </p>
+          <p className="text-[11px] text-gray-500 break-all">URI: {tronUri}</p>
         </div>
 
-        {/* Email + "I sent the payment" */}
+        {/* Client details + "I sent the payment" */}
         <div className="space-y-3 pt-4">
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Your email (for receipt / access)"
-            className="w-full px-3 py-2 rounded-md bg-black/40 border border-white/10 text-sm text-white"
-          />
-          <button
-            type="button"
-            onClick={notifyStarted}
-            disabled={!email || startedNotified}
-            className="w-full py-2 rounded-md bg-emerald-500 hover:bg-emerald-600 text-black text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              notifyStarted();
+            }}
+            className="space-y-3 pt-4"
           >
-            {startedNotified ? 'Payment started – check your email' : 'I sent the payment'}
-          </button>
-        </div>
+            <input
+              type="text"
+              value={firstName}
+              onChange={(e) => setFirstName(e.target.value)}
+              placeholder="First name"
+              required
+              className="w-full px-3 py-2 rounded-md bg-black/40 border border-white/10 text-sm text-white"
+            />
 
-        <div className="space-y-2">
-          <div className="text-sm font-semibold text-white">
-            Status:{' '}
-            {status === 'waiting' && 'Waiting'}
-            {status === 'checking' && 'Waiting for payment (checking blockchain...)'}
-            {status === 'paid' && 'Payment received ✅'}
-            {status === 'error' && 'Error while checking payment'}
-          </div>
-          {error && (
-            <p className="text-xs text-red-400">
-              {error}
-            </p>
-          )}
-          {status === 'paid' && explorerUrl && (
-            <a
-              href={explorerUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="text-xs text-blue-400 underline"
+            <input
+              type="text"
+              value={lastName}
+              onChange={(e) => setLastName(e.target.value)}
+              placeholder="Last name"
+              required
+              className="w-full px-3 py-2 rounded-md bg-black/40 border border-white/10 text-sm text-white"
+            />
+
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="Phone number"
+              required
+              className="w-full px-3 py-2 rounded-md bg-black/40 border border-white/10 text-sm text-white"
+            />
+
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Your email (for receipt / access)"
+              required
+              className="w-full px-3 py-2 rounded-md bg-black/40 border border-white/10 text-sm text-white"
+            />
+            {email && !emailValid && (
+          <p className="text-xs text-red-400">Enter a valid email address</p>
+            )}
+            <button
+              type="submit"
+              disabled={!formValid || startedNotified}
+              className="w-full py-2 rounded-md bg-emerald-500 hover:bg-emerald-600 text-black text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              View transaction on TRONSCAN
-            </a>
-          )}
-        </div>
+              {startedNotified
+                ? 'Details sent – we will verify your payment'
+                : 'I sent the payment'}
+            </button>
 
-        {/* Keep your existing manual verification / referral sections below if needed */}
+            {error && <p className="text-xs text-red-400">{error}</p>}
+          </form>
+
+        </div>
       </div>
     </div>
   );
