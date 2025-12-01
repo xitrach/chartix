@@ -78,8 +78,8 @@ const Pay: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="max-w-xl w-full bg-black/60 border border-white/10 rounded-2xl p-6 space-y-6">
+   <div className="min-h-screen flex items-center justify-center px-4 pt-20">
+  <div className="max-w-xl w-full bg-black/60 border border-white/10 rounded-2xl p-6 space-y-6">
         <h1 className="text-2xl font-bold text-white">
           {t('pay.title', { defaultValue: 'Secure payment processing' })}
         </h1>
