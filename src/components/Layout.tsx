@@ -183,10 +183,6 @@ const Layout: React.FC = () => {
                   <Phone className="w-4 h-4 text-primary" />
                   <span>+961 81 394 607</span>
                 </li>
-                <li className="flex items-center gap-3">
-                  <Phone className="w-4 h-4 text-primary" />
-                  <span>+44 7904 052191</span>
-                </li>
               </ul>
             </div>
           </div>
