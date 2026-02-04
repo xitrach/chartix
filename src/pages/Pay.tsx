@@ -33,8 +33,8 @@ const Pay: React.FC = () => {
 
   const amount = useMemo(() => {
     const priceLabel = t(`pricing.${planId}.price`, { defaultValue: '$0' });
-    const num = parseFloat(String(priceLabel).replace(/[^0-9.]/g, ''));
-    return isNaN(num) ? 0 : num;
+     const num = parseFloat(priceLabel.replace(/[^0-9.]/g, ''));
+    return isNaN(num) ? priceLabel : `$${(num * 0.8).toFixed(2)}`
   }, [planId, t]);
 
   const handleCopy = () => {
